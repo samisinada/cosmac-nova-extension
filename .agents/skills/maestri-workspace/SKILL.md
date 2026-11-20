@@ -1,6 +1,6 @@
 ---
 name: maestri-workspace
-description: Create new Maestri workspaces and floors from the command line, optionally cloning an existing workspace as a starting point, land or delete a floor when its work is done, and post a floor's status. Use when the user asks to provision, spin up, or scaffold a new workspace, project environment, or isolated floor, or to land, merge back, or remove a floor, and whenever you are working on a task on a floor, to keep its status current.
+description: Create new Maestri workspaces and floors from the command line, optionally cloning an existing workspace as a starting point, land or delete a floor when its work is done, post a floor's status, and organize workspaces into spaces. Use when the user asks to provision, spin up, or scaffold a new workspace, project environment, or isolated floor, to land, merge back, or remove a floor, or to arrange the sidebar's spaces, and whenever you are working on a task on a floor, to keep its status current.
 user-invocable: true
 ---
 
@@ -30,13 +30,14 @@ A prompt that carries `<maestri-create-floor skill="maestri-workspace" />` comes
 
 ## Commands
 
-### `maestri workspace create "Name" --dir PATH [--from "Source Workspace"] [--group "Group"] [--folder "Folder"]`
+### `maestri workspace create "Name" --dir PATH [--from "Source Workspace"] [--group "Group"] [--folder "Folder"] [--space "Space"]`
 
 Creates a new workspace rooted at PATH.
 
 - `--from "Source Workspace"` — clone an existing workspace as the starting point: its full canvas layout (terminals, notes, file trees, floors, connections) is deep-copied, and every path under the source's working directory is retargeted onto PATH. Terminals start fresh — no scrollback, nothing running — and boot when the user first opens the workspace. Paths pointing outside the source's directory are kept as-is.
 - `--group "Group"` — file the workspace under a sidebar group, creating the group if it doesn't exist yet.
 - `--folder "Folder"` — file the workspace inside a sidebar folder. Alone, the folder is matched anywhere in the sidebar (created at the sidebar root when missing); with `--group`, the folder lives inside that group; with `--root`, only folders at the sidebar root are matched. If a bare folder name matches more than one folder, the command asks you to add `--group` or `--root` to disambiguate.
+- `--space "Space"`: the sidebar has spaces (pages, each with its own groups and folders). Groups and folders are matched in every space; when a name matches in more than one, the command asks you to add `--space`. With `--space`, names are matched in that space only and anything missing is created there. Without a group or folder, the workspace lands in the space the user is looking at, or in `--space`.
 - Without `--from`, the workspace starts with an empty canvas.
 
 The user's "template" is just a normal workspace — suggest they keep one laid out the way they like and clone it by name:
@@ -46,14 +47,15 @@ maestri workspace create "Acme Churn Analysis" --dir ~/Work/acme-churn --from "D
 maestri workspace create "Q3 Report" --dir ~/Work/q3 --group "Data Projects" --folder "Reports"
 ```
 
-### `maestri workspace move "Name" --group "Group" | --folder "Folder" | --root`
+### `maestri workspace move "Name" --group "Group" | --folder "Folder" | --root | --space "Space"`
 
-Refiles an existing workspace in the sidebar. Same destination rules as `create`: groups and folders are created when missing, `--group` + `--folder` scopes the folder to that group, `--root` + `--folder` scopes it to the sidebar root, and `--root` alone moves the workspace out of any group or folder. This only reorganizes the sidebar — the workspace itself is untouched.
+Refiles an existing workspace in the sidebar. Same destination rules as `create`: groups and folders are created when missing, `--group` + `--folder` scopes the folder to that group, `--root` + `--folder` scopes it to the sidebar root, and `--root` alone moves the workspace out of any group or folder, staying in its space. A group or folder in another space takes the workspace to that space. `--space` alone (or with `--root`) moves the workspace to that space's root; with `--group` or `--folder` it scopes the names to that space. This only reorganizes the sidebar: the workspace itself is untouched.
 
 ```
 maestri workspace move "Acme Churn Analysis" --folder "Archive 2026"
 maestri workspace move "Q3 Report" --folder "Reports" --root
 maestri workspace move "Scratch" --root
+maestri workspace move "Acme Churn Analysis" --space "Clients"
 ```
 
 ### `maestri workspace rename "Current Name" "New Name"`
@@ -66,7 +68,7 @@ maestri workspace rename "Acme Churn Analysis" "Acme Churn v2"
 
 ### `maestri workspace list`
 
-Prints the sidebar hierarchy exactly as the user sees it — Pinned first, then the root workspaces and folders in order, then each group with its folders — with every workspace's directory and floor count, marking the one your terminal lives in and any that is `unloaded` (nothing running; an `ask` to an agent there wakes its floor). Empty groups and folders are listed too, so the output doubles as a map of valid filing destinations. Run it before `create` or `move` to pick a free name, the exact `--from` source, and where the workspace should live.
+Prints the sidebar hierarchy exactly as the user sees it (Pinned first, then the root workspaces and folders in order, then each group with its folders), with every workspace's directory and floor count, marking the one your terminal lives in and any that is `unloaded` (nothing running; an `ask` to an agent there wakes its floor). When the sidebar has more than one space, each space is listed under its own heading, marking the one on screen. Empty groups and folders are listed too, so the output doubles as a map of valid filing destinations. Run it before `create` or `move` to pick a free name, the exact `--from` source, and where the workspace should live.
 
 ### `maestri workspace unload "Name"`
 
@@ -74,6 +76,15 @@ Unloads a whole workspace, like its Unload menu item: its agents are interrupted
 
 ```
 maestri workspace unload "Acme Churn Analysis"
+```
+
+### Spaces: `maestri space list | create | edit | move | delete`
+
+The sidebar's spaces are the pages on its bar, each holding its own workspaces, groups and folders. To organize workspaces into spaces: `maestri space list` to see them in bar order, `maestri space create "Name" [--icon I] [--color C]` for a new one, `maestri workspace move "Workspace" --space "Name"` to put a workspace in it, `maestri space edit "Name" [--name "New"] [--icon I] [--color C | --color none]` to rename or restyle it, and `maestri space move "Name" (--to N | --left | --right)` to reorder the bar. These change the bar exactly as the user's own clicks do. `maestri space delete "Name"` sends the space's workspaces to the default space; run it only when the user explicitly asks, like `note delete`. Run `maestri space --help` for the icons and colors.
+
+```
+maestri space create "Clients" --icon folder --color blue
+maestri workspace move "Acme Churn Analysis" --space "Clients"
 ```
 
 ### `maestri floor create "Name" [--from PATH] [--branch NAME] [--existing-branch] [--copy] [--no-git] [--copy-ground] [--partitura P]`
